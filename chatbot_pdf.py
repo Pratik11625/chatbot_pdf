@@ -1,22 +1,27 @@
 # Import necessary libraries
 import streamlit as st
-from langchain.chains import create_history_aware_retriever
-from langchain.chains import create_retrieval_chain
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-# # from langchain_chroma import Chroma
-# from langchain_community.vectorstores import FAISS
-# from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain.vectorstores import Chroma, FAISS  # For Chroma and FAISS vectorstores
-from langchain.memory import ChatMessageHistory  # For chat message history
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_groq import ChatGroq
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# Updated imports for Vectorstores
+from langchain.vectorstores import FAISS  # Chroma and FAISS are under `langchain.vectorstores`
+
+# Import Chat History and Prompts
+from langchain.memory import ChatMessageHistory  # Replaces `langchain_community.chat_message_histories`
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+# Import for Groq and HuggingFace LLMs
+from langchain.groq import ChatGroq
+from langchain.embeddings import HuggingFaceEmbeddings  # Updated import for embeddings
+
+# For loading PDF documents and text splitting
+from langchain.document_loaders import PyPDFLoader  # Document loader is now under `langchain.document_loaders`
+from langchain.text_splitter import RecursiveCharacterTextSplitter  # Updated from `langchain_text_splitters`
+
+# For managing environment variables
 import os
 from dotenv import load_dotenv
+
 
 # Load environment variables from a .env file
 load_dotenv()
