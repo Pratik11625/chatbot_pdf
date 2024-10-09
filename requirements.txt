@@ -1,5 +1,8 @@
 streamlit
 langchain
 chromadb
-sentence-transformers
-pypdf
+faiss-cpu
+groq
+huggingface_hub
+python-dotenv
+
