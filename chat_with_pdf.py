@@ -2,7 +2,7 @@
 import streamlit as st
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.vectorstores import FAISS  # Vectorstore for document retrieval
+from langchain.vectorstores import FAISS  # Direct import from langchain
 from langchain.memory import ChatMessageHistory  # For managing chat history
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder  # For managing prompt templates
 from langchain.groq import ChatGroq  # For using Groq LLM
