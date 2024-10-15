@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Set up HuggingFace embedding model
+# Set up HuggingFace embedding model# Set up HuggingFace embeddings model using an environment variable for the API token
+os.environ["HF_TOKEN"] = st.secrets["HF_TOKEN"]  # Use '=' for assignment
 embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Set up Streamlit app
