@@ -1,4 +1,3 @@
-
 import os
 from dotenv import load_dotenv
 import streamlit as st
@@ -9,109 +8,112 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader
 import time
 
 # Load environment variables
 load_dotenv()
 
-## Load API key and env variable
-# os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
-# groq_api_key = os.getenv("GROQ_API_KEY")
-#input the groq api key
-groq_api_key=st.text_input("enter the groq_api_key: ", type="password")
+# App Title and Sidebar Setup
+st.set_page_config(page_title="Chat with PDFs", layout="wide")
+st.sidebar.title("Document Chat with Groq and Llama")
+st.sidebar.write("Upload your document, create embeddings, and ask questions.")
 
-# Initialize the model
-llm = ChatGroq(model_name="Gemma-7b-It", groq_api_key=groq_api_key)
+# API Key Input (from sidebar)
+groq_api_key = st.sidebar.text_input("Enter your Groq API key:", type="password")
 
-# Define the prompt template
-prompt = ChatPromptTemplate.from_template(
-    """Answer the question based on the provided context only, please provide the most accurate response based on the question.
-    <context>
-    {context}
-    </context>
-    Question: {input}"""
-)
+# File Uploader for PDF and Text Files
+uploaded_files = st.sidebar.file_uploader("Upload PDF/Text Files", type=["pdf", "txt"], accept_multiple_files=True)
 
+# Initialize the LLM model
+if groq_api_key:
+    llm = ChatGroq(model_name="Gemma-7b-It", groq_api_key=groq_api_key)
+else:
+    st.sidebar.warning("Please enter your Groq API key.")
+    st.stop()
 
-# # Correctly handle file paths using os.path.join
-# base_dir = os.path.dirname(os.path.abspath(__file__))  # Get the base directory where the script is located
-# resume_dir = os.path.join(base_dir, "langchain", "chatbot", "resume")
+# Initialize session state for embeddings and chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "vectors" not in st.session_state:
+    st.session_state.vectors = None
 
-# Function to create vector embeddings and store them in session state
-def create_vector_embeddings():
-    if "vectors" not in st.session_state:
-        # Initialize embeddings, document loader, and vectors in session state
-        st.session_state.embeddings = OllamaEmbeddings()
-        # st.session_state.loader = PyPDFDirectoryLoader("\resume")
-        #   # Data ingestion folder name
-        if os.path.exists('resume'):
-            st.session_state.loader = PyPDFDirectoryLoader("resume")  # Load PDFs from the resume directory
-        else:
-            st.error(f"Directory not found: {'resume'}")  # Handle the case where the directory doesn't exist
+# Function to create vector embeddings from uploaded documents
+def create_vector_embeddings(docs):
+    st.session_state.embeddings = OllamaEmbeddings()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20)
+    final_docs = text_splitter.split_documents(docs)
 
-        # Load documents and check if the list is not empty
-        st.session_state.doc = st.session_state.loader.load()
-        if not st.session_state.doc:
-            st.warning("No documents found in the specified directory.")
-            return  # Early exit if no documents are found
+    if final_docs:
+        st.session_state.vectors = FAISS.from_documents(final_docs, st.session_state.embeddings)
+        st.sidebar.success("Embeddings created successfully!")
+    else:
+        st.sidebar.error("Document splitting failed. Try uploading a valid document.")
 
-        st.session_state.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20)
-        st.session_state.final_doc = st.session_state.text_splitter.split_documents(st.session_state.doc[:50])
-        
-        # Check if documents were split correctly
-        if not st.session_state.final_doc:
-            st.warning("Document splitting resulted in no chunks.")
-            return  # Early exit if document splitting failed
+# Process uploaded files
+if uploaded_files:
+    documents = []
+    for file in uploaded_files:
+        if file.type == "application/pdf":
+            # Load PDF files
+            loader = PyPDFLoader(file)
+            docs = loader.load()
+            documents.extend(docs)
+        elif file.type == "text/plain":
+            # Load text files
+            text = file.read().decode("utf-8")
+            documents.append({"page_content": text, "metadata": {"source": file.name}})
+    
+    # Create embeddings when the "Create Embeddings" button is clicked
+    if st.sidebar.button("Create Embeddings"):
+        create_vector_embeddings(documents)
 
-        # Initialize vectors
-        st.session_state.vectors = FAISS.from_documents(st.session_state.final_doc, st.session_state.embeddings)
-        st.write("Vector embeddings created and stored in session state.")
+# Chat Input
+st.title("Chat with Your Document 📄")
+user_prompt = st.text_input("Ask a question based on your document:")
 
-# Streamlit app title
-st.title("RAG DOC Q&A with Groq and Llama")
+# If embeddings are available, allow users to ask questions
+if user_prompt and st.session_state.vectors:
+    # Define the prompt template for querying the document
+    prompt = ChatPromptTemplate.from_template(
+        """Answer the question based on the provided context from the uploaded document.
+        <context>
+        {context}
+        </context>
+        Question: {input}"""
+    )
 
-# User prompt input
-user_prompt = st.text_input("Enter your query:")
-
-# Button to create document embeddings
-if st.button("Create Doc Embeddings"):
-    create_vector_embeddings()
-
-# Check if user input is provided and embeddings are initialized
-if user_prompt and "vectors" in st.session_state:
-    # Create document chain and retriever chain
+    # Create the document chain and retriever chain
     doc_chain = create_stuff_documents_chain(llm, prompt)
     retriever = st.session_state.vectors.as_retriever()
     retriever_chain = create_retrieval_chain(retriever, doc_chain)
 
-    # Measure the response time
+    # Measure response time
     start = time.process_time()
     response = retriever_chain.invoke({'input': user_prompt})
 
-    # Check if the response has the expected structure and contains an answer
-    if 'answer' not in response or not response['answer']:
-        st.warning("No response found.")
-    else:
-        st.write(f"Response time: {time.process_time() - start:.2f} seconds")
-        st.write(response['answer'])
+    # Store response in chat history
+    st.session_state.chat_history.append({"user": user_prompt, "assistant": response.get('answer', 'No answer found.')})
 
-        # Optionally, expand to show document similarity search results
+    # Display response and response time
+    st.write(f"Response time: {time.process_time() - start:.2f} seconds")
+    st.write(f"**Assistant:** {response.get('answer', 'No answer found.')}")
+
+    # Display chat history
+    st.write("### Chat History")
+    for chat in st.session_state.chat_history:
+        st.write(f"**You:** {chat['user']}")
+        st.write(f"**Assistant:** {chat['assistant']}")
+
+    # Display Document Similarity Context
     with st.expander("Document Similarity Search"):
-        
-        # for i, doc in enumerate(response['answer']):
-        #         st.write(doc.page_content)
-        #         st.write("------------------")
-
         for i, doc in enumerate(response.get('docs', [])):
-            # Check if the object has 'page_content' attribute
             if hasattr(doc, 'page_content'):
                 st.write(f"Document {i + 1}: {doc.page_content}")
-            else:
-                st.write(f"Document {i + 1}: {doc}")  # In case it's a string or other object
-            st.write("------------------")
+                st.write("------------------")
+else:
+    if user_prompt:
+        st.warning("Please create document embeddings first by uploading a document.")
 
-
-# Handle the case where user input is provided but embeddings are not initialized
-elif user_prompt:
-    st.warning("Please create document embeddings first.")
+# Footer Message
+st.sidebar.write("© 2024 Conversational Document Chat")
