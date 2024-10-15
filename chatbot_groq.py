@@ -41,7 +41,10 @@ if "vectors" not in st.session_state:
 
 # Function to create vector embeddings from uploaded documents
 def create_vector_embeddings(docs):
-    st.session_state.embeddings = OllamaEmbeddings()
+    # st.session_state.embeddings = OllamaEmbeddings()
+    # Set up HuggingFace embeddings model using an environment variable for the API token
+    os.environ["HF_TOKEN"] = st.secrets["HF_TOKEN"]  # Use '=' for assignment
+    st.session_state.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20)
     final_docs = text_splitter.split_documents(docs)
 
@@ -68,6 +71,7 @@ def create_vector_embeddings(docs):
 #     # Create embeddings when the "Create Embeddings" button is clicked
 #     if st.sidebar.button("Create Embeddings"):
 #         create_vector_embeddings(documents)
+
 # Process uploaded files (PDF or Text files)
 if uploaded_files:
     documents = []
