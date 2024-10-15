@@ -30,6 +30,8 @@ load_dotenv()
 
 # Set up HuggingFace embeddings model using an environment variable for the API token
 os.environ['HF_TOKEN'] = os.getenv('HF_TOKEN')
+# Set up HuggingFace embeddings model using an environment variable for the API token
+os.environ["HF_TOKEN"] = st.secrets["HF_TOKEN"]  # Use '=' for assignment
 embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")  # Use HuggingFace's MiniLM model for embeddings
 
 # Set up Streamlit web app interface
