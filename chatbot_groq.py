@@ -10,6 +10,7 @@ from langchain.chains import create_retrieval_chain
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import PyPDFLoader
 import time
+import tempfile
 
 # Load environment variables
 load_dotenv()
@@ -50,15 +51,41 @@ def create_vector_embeddings(docs):
     else:
         st.sidebar.error("Document splitting failed. Try uploading a valid document.")
 
-# Process uploaded files
+# # Process uploaded files
+# if uploaded_files:
+#     documents = []
+#     for file in uploaded_files:
+#         if file.type == ".pdf":
+#             # Load PDF files
+#             loader = PyPDFLoader(file)
+#             docs = loader.load()
+#             documents.extend(docs)
+#         elif file.type == ".txt":
+#             # Load text files
+#             text = file.read().decode("utf-8")
+#             documents.append({"page_content": text, "metadata": {"source": file.name}})
+    
+#     # Create embeddings when the "Create Embeddings" button is clicked
+#     if st.sidebar.button("Create Embeddings"):
+#         create_vector_embeddings(documents)
+# Process uploaded files (PDF or Text files)
 if uploaded_files:
     documents = []
     for file in uploaded_files:
         if file.type == "application/pdf":
-            # Load PDF files
-            loader = PyPDFLoader(file)
+            # Save the uploaded PDF to a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+                temp_pdf.write(file.getvalue())
+                temp_pdf_path = temp_pdf.name
+            
+            # Load the PDF using the saved temporary file path
+            loader = PyPDFLoader(temp_pdf_path)
             docs = loader.load()
             documents.extend(docs)
+            
+            # Optionally remove the temporary file after processing
+            os.remove(temp_pdf_path)
+
         elif file.type == "text/plain":
             # Load text files
             text = file.read().decode("utf-8")
