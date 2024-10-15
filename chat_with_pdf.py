@@ -1,18 +1,20 @@
 # Import necessary libraries  
 import streamlit as st
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains import create_history_aware_retriever
+from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.vectorstores import FAISS  # Direct import from langchain
-from langchain.memory import ChatMessageHistory  # For managing chat history
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder  # For managing prompt templates
-from langchain.groq import ChatGroq  # For using Groq LLM
-from langchain.embeddings import HuggingFaceEmbeddings  # For embedding documents
-from langchain.document_loaders import PyPDFLoader  # For loading PDFs
-from langchain.text_splitter import RecursiveCharacterTextSplitter  # For splitting text into chunks
+from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma, FAISS
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 from dotenv import load_dotenv
-
-# Load environment variables from .env file
 load_dotenv()
 
 # Set up HuggingFace embedding model# Set up HuggingFace embeddings model using an environment variable for the API token
